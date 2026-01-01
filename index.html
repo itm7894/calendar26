@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ক্যালেন্ডার ২০২৬ - কর অঞ্চল ১৩</title>
+    <style>
+        :root {
+            --eng-color: #2c3e50;
+            --ban-color: #16a085;
+            --holiday-color: #d32f2f;
+            --header-bg: #2c3e50;
+        }
+
+        * { box-sizing: border-box; }
+
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'SolaimanLipi', Arial, sans-serif; 
+            background: #dfe6e9;
+            /* মসৃণ স্ক্রলিং এর জন্য */
+            scroll-behavior: smooth;
+        }
+
+        /* প্রতিটি মাসকে একটি পূর্ণ স্ক্রিন বা পেজ হিসেবে নির্ধারণ */
+        .month-page {
+            height: 100vh; /* স্ক্রিনের পুরো উচ্চতা */
+            width: 100vw;  /* স্ক্রিনের পুরো প্রস্থ */
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            background: #ffffff;
+            /* স্ক্রল স্ন্যাপিং - যাতে স্ক্রল করলে ঠিক মাসের শুরুতে গিয়ে থামে */
+            scroll-snap-align: start;
+            overflow: hidden;
+            border-bottom: 10px solid var(--header-bg);
+        }
+
+        /* ক্যালেন্ডার কন্টেইনারে স্ন্যাপ টাইপ সেট করা */
+        #calendarContainer {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+        }
+
+        .header { 
+            text-align: center; 
+            border-bottom: 2px solid #2c3e50; 
+            margin-bottom: 5px;
+        }
+        
+        .header h1 { margin: 0; font-size: 22px; color: #1a252f; }
+        .header h2 { margin: 2px 0; font-size: 16px; color: #2c3e50; }
+        .header h3 { margin: 2px 0; font-size: 12px; color: #34495e; font-weight: normal; }
+
+        .month-info-bar {
+            text-align: center;
+            background: var(--header-bg);
+            color: white;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+
+        .main-title { font-size: 20px; font-weight: bold; display: block; }
+        .sub-title { font-size: 14px; color: #ecf0f1; }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            flex-grow: 1; /* স্ক্রিনের বাকি খালি জায়গা পূরণ করবে */
+            gap: 1px;
+            background-color: #bdc3c7;
+            border: 1px solid #bdc3c7;
+        }
+
+        .day-header {
+            background: #f1f2f6;
+            color: #2f3542;
+            text-align: center;
+            padding: 10px 0;
+            font-weight: bold;
+            font-size: 14px;
+            border-bottom: 2px solid #bdc3c7;
+        }
+
+        .weekend-header { color: var(--holiday-color); background: #ffeaa7; }
+
+        .day-cell {
+            background: white;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .date-numbers { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        
+        .eng-date { font-size: 20px; font-weight: bold; color: var(--eng-color); }
+        .ban-date { font-size: 12px; color: var(--ban-color); font-weight: bold; }
+
+        .holiday { background-color: #fff5f5; }
+        .holiday .eng-date { color: var(--holiday-color); }
+
+        .desc-box {
+            width: 100%;
+            flex-grow: 1; /* নোট বক্সকে সেলের ভেতর সর্বোচ্চ বড় করবে */
+            border: 1px solid #f0f0f0;
+            font-size: 11px;
+            background: #fffdf9;
+            resize: none;
+            outline: none;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .desc-box:focus { border-color: var(--ban-color); background: #fff; }
+
+        /* ডানদিকের নেভিগেশন মেনু */
+        .nav { 
+            position: fixed; 
+            right: 15px; 
+            top: 50%; 
+            transform: translateY(-50%);
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            z-index: 1000; 
+        }
+        .nav a { 
+            background: rgba(44, 62, 80, 0.8); 
+            color: white; 
+            padding: 6px; 
+            text-decoration: none; 
+            font-size: 11px; 
+            text-align: center; 
+            border-radius: 4px; 
+            width: 70px; 
+        }
+        .nav a:hover { background: var(--ban-color); }
+
+        @media print { 
+            .nav { display: none; } 
+            .month-page { height: 100vh; border: none; page-break-after: always; } 
+            #calendarContainer { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="nav" id="monthNav"></div>
+    <div id="calendarContainer"></div>
+
+    <script>
+        const monthNamesBn = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        const banglaMonths = ["পৌষ-মাঘ", "মাঘ-ফাল্গুন", "ফাল্গুন-চৈত্র", "চৈত্র-বৈশাখ", "বৈশাখ-জ্যৈষ্ঠ", "জ্যৈষ্ঠ-আষাঢ়", "আষাঢ়-শ্রাবণ", "শ্রাবণ-ভাদ্র", "ভাদ্র-আশ্বিন", "আশ্বিন-কার্তিক", "কার্তিক-অগ্রহায়ণ", "অগ্রহায়ণ-পৌষ"];
+        const dayNamesBn = ["রবি", "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র", "শনি"];
+        const holidays2026 = ["2026-02-21", "2026-03-17", "2026-03-26", "2026-04-14", "2026-05-01", "2026-12-16", "2026-12-25"];
+
+        function generateCalendar() {
+            const container = document.getElementById('calendarContainer');
+            const nav = document.getElementById('monthNav');
+
+            for (let m = 0; m < 12; m++) {
+                const monthDate = new Date(2026, m, 1);
+                const monthId = `month-${m}`;
+                
+                // নেভিগেশন বাটন তৈরি
+                const navLink = document.createElement('a');
+                navLink.href = `#${monthId}`;
+                navLink.innerText = monthNamesBn[m];
+                nav.appendChild(navLink);
+
+                let bYear = (m < 3) ? "১৪৩২-১৪৩৩" : "১৪৩৩"; 
+
+                let html = `
+                <section class="month-page" id="${monthId}">
+                    <div class="header">
+                        <h1>কর কমিশনারের কার্যালয়</h1>
+                        <h2>কর অঞ্চল-১৩, ঢাকা</h2>
+                        <h3>১৫, পুরানা পল্টন (চৌধুরী কমপ্লেক্স), ঢাকা-১০০০</h3>
+                    </div>
+                    <div class="month-info-bar">
+                        <span class="main-title">${monthNamesBn[m]} ২০২৬</span>
+                        <span class="sub-title">বাংলা: ${banglaMonths[m]} ${bYear} বঙ্গাব্দ</span>
+                    </div>
+                    <div class="calendar-grid">
+                        ${dayNamesBn.map((day, i) => `<div class="day-header ${i >= 5 ? 'weekend-header' : ''}">${day}</div>`).join('')}
+                `;
+
+                const firstDay = monthDate.getDay();
+                const daysInMonth = new Date(2026, m + 1, 0).getDate();
+
+                // ফাঁকা সেল (মাসের শুরুর আগের দিনগুলো)
+                for (let i = 0; i < firstDay; i++) html += `<div class="day-cell" style="background:#f9f9f9"></div>`;
+
+                // তারিখগুলো তৈরি
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `2026-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const currentDay = new Date(2026, m, d).getDay();
+                    const isHoliday = (currentDay === 5 || currentDay === 6 || holidays2026.includes(dateStr));
+                    const bDay = (d + 16) % 30 || 30; 
+
+                    html += `
+                        <div class="day-cell ${isHoliday ? 'holiday' : ''}">
+                            <div class="date-numbers">
+                                <span class="eng-date">${d}</span>
+                                <span class="ban-date">${bDay}</span>
+                            </div>
+                            <textarea class="desc-box" id="note-${dateStr}" placeholder="নোট..."></textarea>
+                        </div>
+                    `;
+                }
+
+                html += `</div></section>`;
+                container.innerHTML += html;
+            }
+            loadNotes();
+        }
+
+        // লোকাল স্টোরেজে নোট সেভ ও লোড করা
+        function loadNotes() {
+            document.querySelectorAll('.desc-box').forEach(box => {
+                box.value = localStorage.getItem(box.id) || '';
+                box.addEventListener('input', () => {
+                    localStorage.setItem(box.id, box.value);
+                });
+            });
+        }
+
+        window.onload = generateCalendar;
+    </script>
+</body>
+</html>
